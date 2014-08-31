@@ -25,11 +25,12 @@ function is_in() {
 	local VAR="$1"
 	local LIST="$2"
 
-	if [[ "$LIST" =~ (^| )"$VAR"($| ) ]]; then
-		return 1
-	else
-		return 0
-	fi
+	local e
+	for e in $LIST; do 
+		[[ "$e" == "$VAR" ]] && return 1; 
+	done
+
+	return 0
 }
 
 #list paritions (excludes raspberry OS SD card partition)

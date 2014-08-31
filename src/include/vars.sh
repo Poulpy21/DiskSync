@@ -1,4 +1,3 @@
-
 BACKUP_MOUNT_FOLDER='/mnt/'
 DEVICE_MOUNT_FOLDER='/mount/'
 DEVICE_FOLDER='/dev/'
