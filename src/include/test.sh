@@ -2,26 +2,34 @@
 
 #Test a partition
 function test() {
-	PARTITION=$1
+	PARTITION="$1"
+	DEVICE="$DEVICE_FOLDER$PARTITION" 
+	DIR="$DEVICE_MOUNT_FOLDER$PARTITION"
 
-	echo "Testing partition $PARTITION !"
+	echo "Testing partition $DEVICE !"
 
-	echo "Filling partition with random data files !"
-	umount /dev/$PARTITION
-	mkdir -p tmp
-	mount -a -o rw /dev/$PARTITION tmp/
+	umount "$DEVICE"
+	mkdir -p "$DIR"
+	mount -a -o rw "$DEVICE" "$DIR"
 
-	for i in {1..5}; do
-		dd if=/dev/urandom of=tmp/file_$i bs=1M count=1
-	done
+	FILES=$(find $DIR -type f)
+	if [ "$FILES" ]; then
+		echo "Partition has data, skipping data generation."
+	else
+		echo "Partition has no data, filling partition with random data files !"
 
-	umount /dev/$PARTITION
-	safe-rm -Rf tmp/
+		for i in {1..5}; do
+			dd if=/dev/urandom of="$DIR/file_$i" bs=1M count=1
+		done
+	fi
+
+	umount $DEVICE
+	safe-rm -Rf $DIR
 
 	echo "Launch copy script !"
 	echo
 	echo
-	#./event.sh $PARTITION
+	$EVENT_PATH/event.sh $PARTITION
 
 	exit 0
 }

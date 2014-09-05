@@ -8,6 +8,7 @@ DC_HOME='/opt/ds'
 SRC_PATH="$DC_HOME/src"
 INCLUDE_PATH="$SRC_PATH/include"
 DEFAULT_PATH="$SRC_PATH/default"
+EVENT_PATH="$SRC_PATH/event"
 DEFAULT_VARS="$DEFAULT_PATH/default_vars.sh"
 VARS="$INCLUDE_PATH/vars.sh"
 UTILS="$INCLUDE_PATH/utils.sh"
@@ -136,7 +137,7 @@ while getopts "vDbShia:A:r:R:s:d:t:p:" opt; do
 		t)
 			decho "-t (test) was triggered, Parameter: $OPTARG" 
 			[ -z $OPTARG ] && warnecho "Option -t needs a non-void argument !" && exit 1
-			TEST_ARGS=$(echo -e "$TEST_ARGS\n$OPTARG")
+			TEST_ARGS="$OPTARG"
 			;;
 		p)
 			decho "-p (print) was triggered, Parameter: $OPTARG" 
@@ -173,15 +174,15 @@ decho "PRINT = $PRINT_ARGS"
 
 #HELP done previously
 #SHOW
-[ $SHOW -eq 1 ] && decho "Checking show flag conditions..." && ([$BENCH -eq 1 ] || [ $INIT -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$TEST_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS"] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -S (show) !" && help && exit 1
+[ "$SHOW" -eq 1 ] && decho "Checking show flag conditions..." && ([ "$BENCH" -eq 1 ] || [ "$INIT" -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$TEST_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS" ] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -S (show) !" && help && exit 1
 #INIT
-[ $INIT -eq 1 ] && decho "Checking initialize flag conditions..." && ([$BENCH -eq 1 ] || [ $SHOW -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$TEST_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS"] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -i (initialize) !" && help && exit 1
+[ "$INIT" -eq 1 ] && decho "Checking initialize flag conditions..." && ([ "$BENCH" -eq 1 ] || [ "$SHOW" -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$TEST_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS" ] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -i (initialize) !" && help && exit 1
 #PRINT
-[ "$PRINT_ARGS" ] && decho "Checking print flag conditions..." && ( [$BENCH -eq 1 ] || [ $SHOW -eq 1 ] || [ $INIT -eq 1 ] || [ "$TEST_ARGS" ] ) && errecho "Error too many arguments with option -p (print) !" && help && exit 1
+[ "$PRINT_ARGS" ] && decho "Checking print flag conditions..." && ([ "$BENCH" -eq 1 ] || [ "$SHOW" -eq 1 ] || [ $INIT -eq 1 ] || [ "$TEST_ARGS" ] ) && errecho "Error too many arguments with option -p (print) !" && help && exit 1
 #TEST
-[ "$TEST_ARGS" ] && decho "Checking test flag conditions..." && ([$BENCH -eq 1] || [ $SHOW -eq 1 ] || [ $INIT -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS"] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -t (test) !" && help && exit 1
+[ "$TEST_ARGS" ] && decho "Checking test flag conditions..." && ([ "$BENCH" -eq 1 ] || [ "$SHOW" -eq 1 ] || [ "$INIT" -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS" ] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -t (test) !" && help && exit 1
 #BENCH
-[ $BENCH -eq 1 ] && decho "Checking bench flag conditions..." && ([ $INIT -eq 1 ] || [ $SHOW -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$TEST_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS"] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -b (bench) !" && help && exit 1
+[ "$BENCH" -eq 1 ] && decho "Checking bench flag conditions..." && ([ "$INIT" -eq 1 ] || [ "$SHOW" -eq 1 ] || [ "$PRINT_ARGS" ] || [ "$TEST_ARGS" ] || [ "$ADD_SRC_ARGS" ] || [ "$ADD_DST_ARGS" ] || [ "$REMOVE_SRC_ARGS" ] || [ "$REMOVE_DST_ARGS" ] || [ "$SET_ARGS" ] || [ "$RESET_ARGS" ]) && errecho "Error too many arguments with option -b (bench) !" && help && exit 1
 #ADD/REMOVE/SET/RESET ARGS no more restrictions at this point
 
 

@@ -1,2 +1,2 @@
-KERNEL=="sd?*[0-9]*", ACTION=="add", RUN+="/home/pi/DiskDumper/on_add_event.sh %k"
-KERNEL=="sd?*[0-9]*", ACTION=="remove", RUN+="/home/pi/DiskDumper/on_remove_event.sh %k"
+KERNEL=="sd?*[0-9]*", ACTION=="add", RUN+="/opt/ds/src/event/on_add_event.sh %k"
+KERNEL=="sd?*[0-9]*", ACTION=="remove", RUN+="/opt/ds/src/event/on_remove_event.sh %k"

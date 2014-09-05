@@ -4,7 +4,7 @@
 export TERM="xterm-256color"
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-DC_HOME='/opt/dc'
+DC_HOME='/opt/ds'
 SRC_PATH="$DC_HOME/src"
 INCLUDE_PATH="$SRC_PATH/include"
 DEFAULT_PATH="$SRC_PATH/default"
@@ -43,7 +43,7 @@ include $UTILS
 
 #check input arguments
 if [ -z "$@" ]; then
-	color_echo "No partition given in input, aborting !" red
+	errecho "No partition given in input, aborting !"
 	exit 1
 else
 	#get connected partition informations
@@ -75,7 +75,8 @@ trap "cleanup $PARTITION" INT QUIT TERM EXIT
 
 #start led blinking
 if [ $STATUS_LED -eq 1 ]; then
-	( blink $STATUS_LED 0$(echo "scale=2; 0.5/$STATUS_LED_FREQ" | bc -l) ) & #fork LED blinking function
+	T_LED=$(echo "scale=2; 0.5/$STATUS_LED_FREQ" | bc -l)
+	( blink "$STATUS_LED" "0$T_LED" ) & #fork LED blinking function
 	BLINK_PID="$!"
 fi
 
@@ -87,7 +88,9 @@ DEVICE_MOUNT_FOLDER="$DEVICE_MOUNT_FOLDER$PARTITION"
 
 if [ -n "$UUID" ]; then
 	color_echo "[$(date)] $PARTITION_PATH plugged in (UUID=$UUID) !" blue
-	if [ -n "$(cat /home/pi/DiskDumper/backup.conf | grep $UUID)" ]; then
+	color_echo "Status LED frequency : $STATUS_LED_FREQ Hz => T/2 = 0${T_LED}s"
+	is_in "$UUID" "$(cat $BACKUP_CONF_FILE)"
+	if [ "$?" -eq 1 ]; then
 		color_echo "$PARTITION_PATH with UUID=\"$UUID\" is registered as backup data device !" yellow
 		color_echo "Mounting it to $BACKUP_MOUNT_FOLDER ..." blue
 
@@ -105,7 +108,10 @@ if [ -n "$UUID" ]; then
 		fi
 
 		if ! [ -L $BACKUP_ALIAS_PATH ]; then
+			color_echo "Creating symbolic link $BACKUP_ALIAS_PATH => $PARTITION_PATH !" blue
 			ln -s $PARTITION_PATH $BACKUP_ALIAS_PATH
+		else
+			color_echo "Symbolic link $BACKUP_ALIAS_PATH already exists !" green
 		fi
 		
 		[ $BACKUP_CONNECTED_LED -eq 1 ] && set_pin_val $BACKUP_CONNECTED_LED_PIN 1
@@ -118,9 +124,9 @@ fi
 
 #check if this is a registered device to sync (with UUID, or label)
 if [ -n "$UUID" ]; then #device has UUID
-	if [ -z $(cat /home/pi/DiskDumper/sync.conf | grep $UUID) ]; then
+	if [ -z $(cat "$DEVICES_CONF_FILE" | grep $UUID) ]; then
 		color_echo "$PARTITION_PATH with UUID=\"$UUID\" is not registered for backups !" yellow
-		color_echo "Add the UUID to sync.conf if you want to backup this partition." yellow
+		color_echo "Add the UUID to "$DEVICES_CONF_FILE" if you want to backup this partition." yellow
 		exit 0
 	else
 		color_echo "$PARTITION_PATH with UUID=\"$UUID\" is registered for backups !" yellow
@@ -130,9 +136,9 @@ else #without UUID
 	color_echo "Trying with label..." blue
 	
 	if [ -n "$LABEL" ]; then #device has a label
-		if [ -z "$(cat /home/pi/DiskDumper/sync.conf | grep $LABEL)" ]; then
+		if [ -z "$(cat "$DEVICES_CONF_FILE"| grep $LABEL)" ]; then
 			color_echo "$PARTITION_PATH (label=$LABEL) seems not to be registered for backups !" yellow
-			color_echo "Add the label to sync.conf if you want to backup this partition." yellow
+			color_echo "Add the label to "$DEVICES_CONF_FILE" if you want to backup this partition." yellow
 			exit 0
 		else
 			color_echo "$PARTITION_PATH (label=$LABEL) seems to be registered for backups !" yellow
@@ -174,7 +180,7 @@ fi
 #check if backup disk is connected and mounted
 if [ -L $BACKUP_ALIAS_PATH  ]; then
 	BACKUP=$(readlink $BACKUP_ALIAS_PATH)
-	color_echo "Backup disk $BACKUP_ALIAS_PATH (/dev/$BACKUP) is connected !" green
+	color_echo "Backup disk $BACKUP_ALIAS_PATH ($BACKUP) is connected !" green
 	RIGHTS=$(get_read_write_rights "$BACKUP")
 	if [ "$RIGHTS" = "rw" ]; then
 		color_echo "Backup disk has read/write rights !" green
@@ -190,7 +196,7 @@ fi
 
 #mount source partition
 SRC_PATH="$DEVICE_MOUNT_FOLDER/"
-ESCAPED_SRC_PATH="\/media\/$PARTITION\/" #TODO
+ESCAPED_SRC_PATH=$(escape_string "$DEVICE_MOUNT_FOLDER/")
 color_echo "Mounting source partition $PARTITION_PATH in read only to $SRC_PATH..." blue
 
 #dirty unmount to be sure noone is using source
@@ -223,7 +229,7 @@ fi
 #look for last directory and create new one
 color_echo "Creating destination folder..." blue
 FOLDERS=$(find $BACKUP_MOUNT_FOLDER/ -maxdepth 1 -type d 2> /dev/null)
-LAST_ID=$(echo $FOLDERS | sed "'s/$(escape_string $BACKUP_MOUNT_FOLDER)//g'" | grep -o '[1-9][0-9]*' | sort -rn | head -1)
+LAST_ID=$(echo $FOLDERS | sed s/"$(escape_string $BACKUP_MOUNT_FOLDER)"//g | grep -o '[1-9][0-9]*' | sort -rn | head -1)
 	
 #if not directory present
 if [ -z $LAST_ID ]; then
@@ -318,7 +324,7 @@ NOT_PRESENT_LIST=""
 
 for SRC_FILE in $FILES; 
 do 
-	FILE=$(echo $SRC_FILE | sed 's/'$ESCAPED_SRC_PATH'//g')
+	FILE=$(echo $SRC_FILE | sed s/"$ESCAPED_SRC_PATH"//g)
 	DST_FILE="$DST_PATH$FILE"
 	
 	PERCENT=$((100*COUNTER/SRC_COUNT))
@@ -326,7 +332,7 @@ do
 		color_echo "verified $PERCENT% ($COUNTER / $SRC_COUNT)" blue
 		LAST_PERCENT=$PERCENT
 	fi
-
+		
 	if [ -f $DST_FILE ];
 	then 
 		HASH1=`$HASHFUNC $SRC_FILE | cut -d ' ' -f 1`
@@ -386,9 +392,11 @@ if [ $VALID_COUNTER -eq $SRC_COUNT ]; then
 		color_echo "Failed to get read/write rights, aborting !" red
 		exit 1
 	fi
-
-	color_echo "Deleting data..." blue
-	#safe-rm -Rf $DEVICE_MOUNT_FOLDER/* TODO FORMAT
+	
+	if [ "$FORMAT_SRC_DEVICE" ]; then
+		color_echo "Deleting data..." blue
+		safe-rm -Rf $DEVICE_MOUNT_FOLDER/*
+	fi
 else
 	color_echo "There were errors while cloning !" red
 fi
