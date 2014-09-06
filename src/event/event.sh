@@ -67,7 +67,7 @@ cleanup() {
 	fi
 
 	sleep 1
-	set_pin_val $STATUS_LED 0
+	set_pin_val "$STATUS_LED_PIN" 0
 }
 
 #set cleanup function when killed or exited
@@ -76,7 +76,7 @@ trap "cleanup $PARTITION" INT QUIT TERM EXIT
 #start led blinking
 if [ $STATUS_LED -eq 1 ]; then
 	T_LED=$(echo "scale=2; 0.5/$STATUS_LED_FREQ" | bc -l)
-	( blink "$STATUS_LED" "0$T_LED" ) & #fork LED blinking function
+	( blink "$STATUS_LED_PIN" "0$T_LED" ) & #fork LED blinking function
 	BLINK_PID="$!"
 fi
 
@@ -239,22 +239,25 @@ fi
 #while for tricky parallel scripts
 while true; do 
 	NEXT_ID=$((LAST_ID+1))
-	DST_PATH="$BACKUP_MOUNT_FOLDER/$(printf '%04d' $NEXT_ID)/"
+	PRINT_FORMAT="%0${FOLDER_DIGITS}d"
+	MAX_NUMBER=$(for i in `seq $FOLDER_DIGITS`;do echo -n 9;done)
+
+	DST_PATH="$BACKUP_MOUNT_FOLDER/$(printf "$PRINT_FORMAT" $NEXT_ID)/"
 
 	if [ $LAST_ID -eq 9999 ]; then
-		color_echo "Last folder id was $(printf '%04d' $LAST_ID) !" yellow
+		color_echo "Last folder id was $(printf "$PRINT_FORMAT" $LAST_ID) !" yellow
 		color_echo "Maximum folder number achieved (9999), aborting !" red
 		exit 1
 	else
 		if [ $LAST_ID -gt 0 ]; then
-			color_echo "Last folder id was $(printf '%04d' $LAST_ID), creating folder $DST_PATH !" yellow
+			color_echo "Last folder id was $(printf "$PRINT_FORMAT" $LAST_ID), creating folder $DST_PATH !" yellow
 		else
 			color_echo "There was no folders, creating folder $DST_PATH !" yellow
 		fi
 
 		if [ -d $DST_PATH ]; then #folder already exists
 			LAST_ID=$NEXT_ID
-			color_echo "$DST_PATH already exists, trying with $(printf '%04d' $((LAST_ID+1)))/ !" white
+			color_echo "$DST_PATH already exists, trying with $(printf "$PRINT_FORMAT" $((LAST_ID+1)))/ !" white
 		else	
 			mkdir $DST_PATH
 			check_error 'Error while creating folder !'
@@ -262,7 +265,7 @@ while true; do
 			DST_COUNT=$(find $DST_PATH -type f 2> /dev/null | wc -l)
 			if [ $DST_COUNT -gt 0 ]; then #folders created at the same time by concurrent scripts
 				LAST_ID=$NEXT_ID
-				color_echo "Files already present in destination, trying with $(printf '%04d' $((LAST_ID+1)))/ !" white
+				color_echo "Files already present in destination, trying with $(printf "$PRINT_FORMAT" $((LAST_ID+1)))/ !" white
 			else
 				#all is ok
 				break
@@ -286,7 +289,7 @@ fi
 
 #copy files
 color_echo "Copying files..." blue
-rsync -avr $SRC_PATH/* $DST_PATH
+rsync -avr "$SRC_PATH" "$DST_PATH"
 
 
 #basic postchecks
@@ -393,7 +396,7 @@ if [ $VALID_COUNTER -eq $SRC_COUNT ]; then
 		exit 1
 	fi
 	
-	if [ "$FORMAT_SRC_DEVICE" ]; then
+	if [ "$FORMAT_SRC_DEVICE" -eq 1 ]; then
 		color_echo "Deleting data..." blue
 		safe-rm -Rf $DEVICE_MOUNT_FOLDER/*
 	fi
@@ -403,6 +406,7 @@ fi
 
 color_echo "Cleaning..." blue
 umount -v $PARTITION_PATH/
+
 safe-rm -Rf "$DEVICE_MOUNT_FOLDER/"
 
 color_echo "Job done !" yellow

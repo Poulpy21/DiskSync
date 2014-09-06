@@ -1,8 +1,9 @@
 #!/bin/bash
 
 #Noob install script
-function install() {
+function initialize() {
 	echo "Install script !"
+	warnecho "NOT IMPLEMENTED YET !"
 	exit 0
 }
 
